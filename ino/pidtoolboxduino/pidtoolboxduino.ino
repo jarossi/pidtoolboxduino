@@ -436,21 +436,23 @@ void driveLed(byte pin, byte channel, byte value) {
 
 void doOftenUpdate() {
 
+  //Serial.println( digitalRead(pidSwitchPin) == LOW && !((configuration.pidOutputChannel == configuration.customControlOutputChannel) && (digitalRead(customControlSwitchPin) == LOW) ));
+  
   // debug
-  if (digitalRead(pidSwitchPin) == LOW && !(isnan(pidInput))  &&  !(configuration.pidOutputChannel == configuration.customControlOutputChannel && digitalRead(customControlSwitchPin) == LOW)  ) {
+  if ( digitalRead(pidSwitchPin) == LOW && !(isnan(pidInput))  && !( (configuration.pidOutputChannel == configuration.customControlOutputChannel) && (digitalRead(customControlSwitchPin) == LOW) ) ) {
     pid.SetMode(AUTOMATIC);
     driveOutput(configuration.pidOutputChannel, pidOutput);
     driveLed(pidLedPin, configuration.pidOutputChannel, pidOutput);
-  } else if( ! (configuration.pidOutputChannel == configuration.customControlOutputChannel && digitalRead(customControlSwitchPin) == LOW)) {
+  } else {
     pid.SetMode(MANUAL);
     driveOutput(configuration.pidOutputChannel, 0);
     driveLed(pidLedPin, configuration.pidOutputChannel, 0);
   }
-
+ 
   if (digitalRead(customControlSwitchPin) == LOW) {
     driveOutput(configuration.customControlOutputChannel, customControlPot);
     driveLed(customControlLedPin, configuration.customControlOutputChannel, customControlPot);
-  } else {
+  } else if (!( (configuration.pidOutputChannel == configuration.customControlOutputChannel) && (digitalRead(pidSwitchPin) == LOW) ) ) {
     driveOutput(configuration.customControlOutputChannel, 0);
     driveLed(customControlLedPin, configuration.customControlOutputChannel, 0);
   }
