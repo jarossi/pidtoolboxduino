@@ -1,6 +1,3 @@
-#include <TimerThree.h>
-
-
 #include <Timer.h>
 
 #include <ThumbJoystick.h>
@@ -27,7 +24,6 @@
 #define joystickXInvert true
 #define joystickYInvert true
 #define joystickThreshold 5
-
 ThumbJoystick joystick(joystickSelPin, joystickXPin, joystickYPin, joystickXInvert, joystickYInvert);
 
 // Connect via i2c, default address #0 (A0-A2 not jumpered)
@@ -60,6 +56,7 @@ DallasTemperature sensors(&oneWire);
 
 #define fanPin 10
 
+
 struct config_t {
   // Pid
   double pidSetPoint;
@@ -74,6 +71,11 @@ struct config_t {
   double pidAKp;
   double pidAKi;
   double pidAKd;
+
+  double pidATuneInputNoise;
+  double pidATuneOutputStep;
+  int pidATuneLookBack;
+  double pidATuneControlType;
 
   DeviceAddress customControlInputSensor;
   byte customControlOutputChannel;
@@ -133,6 +135,11 @@ double pidSetPoint, pidInput, pidOutput;
 //Specify the links and initial tuning parameters
 PID pid(&pidInput, &pidOutput, &pidSetPoint, 1, 1, 1, DIRECT);
 
+
+boolean tuning = false;
+PID_ATune pidATune(&pidInput, &pidOutput);
+
+
 void printSerialData() {
   Serial.print(millis());
   Serial.print(",customControlPot:");
@@ -174,32 +181,32 @@ void lcdPrintFloatSecondLine(double value) {
   lcd.print(value);
 }
 
-void lcdPrintBooleanSecondLine(int value){
-   lcd.setCursor(0, 1);
-   lcd.print(lcdBlankLine);
-   lcd.setCursor(0, 1);
-   if (value == true){
-     lcd.print("true");
-   } else {
-     lcd.print("false");
-   }
-  
+void lcdPrintBooleanSecondLine(long value) {
+  lcd.setCursor(0, 1);
+  lcd.print(lcdBlankLine);
+  lcd.setCursor(0, 1);
+  if (value == true) {
+    lcd.print("true");
+  } else {
+    lcd.print("false");
+  }
+
 }
-  
-void lcdPrintPidDirectionSecondLine(int value){
-   lcd.setCursor(0, 1);
-   lcd.print(lcdBlankLine);
-   lcd.setCursor(0, 1);
-   if (value == DIRECT){
-     lcd.print("direct");
-   } else {
-     lcd.print("reverse");
-   }
-  
+
+void lcdPrintPidDirectionSecondLine(int value) {
+  lcd.setCursor(0, 1);
+  lcd.print(lcdBlankLine);
+  lcd.setCursor(0, 1);
+  if (value == DIRECT) {
+    lcd.print("direct");
+  } else {
+    lcd.print("reverse");
+  }
+
 }
-  
-  
-  
+
+
+
 
 // Function to edit int
 long editInt(long var, long minValue, long maxValue, long increment, int digits, void (*fdisplay)(long)) {
@@ -256,7 +263,7 @@ double editFloat(double var, double minValue, double maxValue, double increment,
 
     if (joystickreadA != 0) {
       // Calculate increment
-      
+
       calincrement = increment;
       for (int i = 1; i < abs(joystickreadA); i++) {
         calincrement = calincrement * 10;
@@ -279,8 +286,8 @@ void lcdPrintTemp(float temp) {
   if (! isnan(temp) ) {
     lcd.write(0);
     lcd.print("C");
-    if (temp < 100) lcd.print(" ");
-    if (temp < 10) lcd.print(" ");
+    if (abs(temp) < 100) lcd.print(" ");
+    if (abs(temp) < 10) lcd.print(" ");
   } else {
     lcd.print("     ");
   }
@@ -337,7 +344,8 @@ void editSensor(uint8_t* device) {
 
 
 
-void driveOutput(byte channel, byte value) {
+void driveOutput(byte channel, int v) {
+  byte value = constrain(v, 0, 255);
   static unsigned long SSRStartTime;
   static unsigned long relayStartTime;
   unsigned long SSRMillisValue;
@@ -359,7 +367,7 @@ void driveOutput(byte channel, byte value) {
         digitalWrite(SSRPin, HIGH);
         break;
       }
-      
+
       if (SSRStartTime > millis()) {
         SSRStartTime = millis();
       }
@@ -367,7 +375,7 @@ void driveOutput(byte channel, byte value) {
       if (millis() > (SSRStartTime + configuration.SSRPeriod) ) {
         SSRStartTime = millis();
       }
-      
+
       if (millis() - SSRStartTime > configuration.SSRPeriod)
       { //time to shift the Relay Window
         SSRStartTime += configuration.SSRPeriod;
@@ -391,7 +399,7 @@ void driveOutput(byte channel, byte value) {
         digitalWrite(relayPin, HIGH);
         break;
       }
-      
+
       if (relayStartTime > millis()) {
         relayStartTime = millis();
       }
@@ -399,7 +407,7 @@ void driveOutput(byte channel, byte value) {
       if (millis() > (relayStartTime + configuration.relayPeriod) ) {
         relayStartTime = millis();
       }
-      
+
       if (millis() - relayStartTime > configuration.relayPeriod)
       { //time to shift the Relay Window
         relayStartTime += configuration.relayPeriod;
@@ -436,24 +444,30 @@ void driveLed(byte pin, byte channel, byte value) {
 
 void doOftenUpdate() {
 
-  //Serial.println( digitalRead(pidSwitchPin) == LOW && !((configuration.pidOutputChannel == configuration.customControlOutputChannel) && (digitalRead(customControlSwitchPin) == LOW) ));
-  
+  Serial.print("do O S:");
+  Serial.print(millis());
   // debug
   if ( digitalRead(pidSwitchPin) == LOW && !(isnan(pidInput))  && !( (configuration.pidOutputChannel == configuration.customControlOutputChannel) && (digitalRead(customControlSwitchPin) == LOW) ) ) {
-    pid.SetMode(AUTOMATIC);
+    if (tuning) {
+      pid.SetMode(MANUAL);
+    } else {
+      pid.SetMode(AUTOMATIC);
+    }
     driveOutput(configuration.pidOutputChannel, pidOutput);
     driveLed(pidLedPin, configuration.pidOutputChannel, pidOutput);
   } else {
     pid.SetMode(MANUAL);
+    tuning = false;
+    pidATune.Cancel();
     driveOutput(configuration.pidOutputChannel, 0);
     driveLed(pidLedPin, configuration.pidOutputChannel, 0);
   }
- 
+
   if (digitalRead(customControlSwitchPin) == LOW) {
     driveOutput(configuration.customControlOutputChannel, customControlPot);
     driveLed(customControlLedPin, configuration.customControlOutputChannel, customControlPot);
-  } else if (!( (configuration.pidOutputChannel == configuration.customControlOutputChannel) && (digitalRead(pidSwitchPin) == LOW) ) ) {
-    driveOutput(configuration.customControlOutputChannel, 0);
+  } else {
+    if (!( (configuration.pidOutputChannel == configuration.customControlOutputChannel) && (digitalRead(pidSwitchPin) == LOW) ) ) driveOutput(configuration.customControlOutputChannel, 0);
     driveLed(customControlLedPin, configuration.customControlOutputChannel, 0);
   }
 
@@ -463,9 +477,25 @@ void doOftenUpdate() {
     }
     driveOutput(i, 0);
   }
-  
-  pid.Compute();
-  
+
+  if (tuning) {
+    if (pidATune.Runtime() != 0) {
+      tuning = false;
+      
+      configuration.pidKp=pidATune.GetKp();
+      configuration.pidKi=pidATune.GetKi();
+      configuration.pidKd=pidATune.GetKd();
+      configuration.pidAKp=pidATune.GetKp();
+      configuration.pidAKi=pidATune.GetKi();
+      configuration.pidAKd=pidATune.GetKd();
+    }
+  } else {
+    pid.Compute();
+  }
+  Serial.print(" ");
+  Serial.println(millis());
+
+
 }
 
 
@@ -482,7 +512,7 @@ void lcdPrintDash() {
     //pid
 
     lcd.setCursor(0, 1);
-    lcd.print("PS:");
+    lcd.print("PS :");
     lcdPrintTemp(pidSetPoint);
     lcd.setCursor(13, 1);
     lcd.print("MO:");
@@ -490,10 +520,10 @@ void lcdPrintDash() {
     doOftenUpdate();
 
     lcd.setCursor(0, 2);
-    lcd.print("PI:");
+    lcd.print("PI :");
     lcdPrintTemp(pidInput);
     lcd.setCursor(13, 2);
-    lcd.print("PO:");
+    lcd.print("PO :");
     lcd.print((byte)pidOutput);
     if ((byte)pidOutput < 100) lcd.print(" ");
     if ((byte)pidOutput < 10) lcd.print(" ");
@@ -515,7 +545,9 @@ void lcdPrintDash() {
 
 
 void updateSensorBuffer() {
-  int deviceCount=sensors.getDeviceCount();
+  Serial.print("updateSensor");
+  Serial.println(millis());
+  int deviceCount = sensors.getDeviceCount();
   for (uint8_t i = 0; i < deviceCount; i++) {
     sensors.getAddress(sensorBuffer[i].address, i);
     sensorBuffer[i].temp = sensors.getTempCByIndex(i);
@@ -546,7 +578,7 @@ void doUpdate() {
   }
 
   doOftenUpdate();
-  
+
   Timers.update();
 
 
@@ -573,18 +605,24 @@ void setup() {
   eeprom_read_block((void*)&configuration_general, (void*)0, sizeof(configuration));
 
   /*
-  configuration.pidSetPoint=0;
+  configuration.pidSetPoint=36.00;
   sensors.getAddress(configuration.pidInputSensor, 0);
-  configuration.pidOuputChannel=1;
-  configuration.pidKp=1;
-  configuration.pidKi=1;
-  configuration.pidKd=1;
+  configuration.pidOutputChannel=1;
+  configuration.pidKp=100;
+  configuration.pidKi=2;
+  configuration.pidKd=2;
   configuration.pidDirection=DIRECT;
   configuration.pidAMode=false;
   configuration.pidADelta=0;
   configuration.pidAKp=1;
   configuration.pidAKi=1;
   configuration.pidAKd=1;
+
+
+  configuration.pidATuneInputNoise=1;
+  configuration.pidATuneOutputStep=50;
+  configuration.pidATuneLookBack=20;
+  configuration.pidATuneControlType=1;
 
   sensors.getAddress(configuration.customControlInputSensor, 1);
   configuration.customControlOutputChannel=2;
@@ -599,9 +637,10 @@ void setup() {
 
   for (uint8_t i=0; i<maxCurrentSettings; i++) {
     eeprom_write_block((const void*)&configuration, (void*)(  (i+1) * sizeof(configuration)  ), sizeof(configuration));
-
   }
   */
+
+  
   eeprom_read_block((void*)&configuration, (void*)( configuration_general.currentSettings * sizeof(configuration)  ), sizeof(configuration));
 
   //Joystick
@@ -640,6 +679,12 @@ void setup() {
   //pidkp, etc.
   pid.SetMode(MANUAL);
   pid.SetTunings(configuration.pidKp, configuration.pidKi, configuration.pidKd);
+
+
+  pidATune.SetNoiseBand(configuration.pidATuneInputNoise);
+  pidATune.SetOutputStep(configuration.pidATuneOutputStep);
+  pidATune.SetLookbackSec(configuration.pidATuneLookBack);
+  pidATune.SetControlType(configuration.pidATuneControlType);
 
 
   pinMode (dimmerPin, OUTPUT);

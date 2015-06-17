@@ -21,6 +21,13 @@ MenuBackend menu = MenuBackend(menuUseEvent,menuChangeEvent);
       MenuItem mPidAKp = MenuItem(menu, "PID Agressive Kp", 3);
       MenuItem mPidAKi = MenuItem(menu, "PID Agressive Ki", 3);
       MenuItem mPidAKd = MenuItem(menu, "PID Agressive Kd", 3);
+      
+    MenuItem mPidAutoTuneSettings = MenuItem(menu, "PID Auto Tuner", 2);
+      MenuItem mPidATuneInputNoise = MenuItem(menu, "PID AT In Noise Band", 3);
+      MenuItem mPidATuneOutputStep = MenuItem(menu, "PID AT Out Step", 3);
+      MenuItem mPidATuneLookBack = MenuItem(menu,   "PID AT Look Back Sec", 3);
+      MenuItem mPidATuneControlType = MenuItem(menu,"PID AT Control Type", 3);
+      MenuItem mPidATuneEnable = MenuItem(menu,"PID AT Enable", 3);
 
     MenuItem mCustomControlSettings = MenuItem(menu, "Custom Control", 2);
       MenuItem mCustomControlInputSensor = MenuItem(menu, "CC Input Sensor", 3);
@@ -89,12 +96,33 @@ void menuSetup()
            
        mPidSetPoint.addLeft(mPidSettings);
     
-    mCustomControlSettings.addBefore(mPidSettings);
+    
+    mPidAutoTuneSettings.addBefore(mPidSettings);
+    mPidAutoTuneSettings.addLeft(mHomeScreen);
+    mPidAutoTuneSettings.addRight(mPidATuneInputNoise);
+    
+      mPidATuneOutputStep.addBefore(mPidATuneInputNoise);
+      mPidATuneOutputStep.addLeft(mPidAutoTuneSettings);
+      
+      mPidATuneLookBack.addBefore(mPidATuneOutputStep);
+      mPidATuneLookBack.addLeft(mPidAutoTuneSettings);
+      
+      mPidATuneControlType.addBefore(mPidATuneLookBack);
+      mPidATuneControlType.addLeft(mPidAutoTuneSettings);
+      
+      mPidATuneEnable.addBefore(mPidATuneControlType);
+      mPidATuneEnable.addLeft(mPidAutoTuneSettings);
+    
+      mPidATuneInputNoise.addLeft(mPidAutoTuneSettings);
+    
+    mCustomControlSettings.addBefore(mPidAutoTuneSettings);
     mCustomControlSettings.addLeft(mHomeScreen);
     mCustomControlSettings.addRight(mCustomControlInputSensor);
     
       mCustomControlOutputChannel.addBefore(mCustomControlInputSensor);
       mCustomControlOutputChannel.addLeft(mCustomControlSettings);
+      
+      
     
       mCustomControlInputSensor.addLeft(mCustomControlSettings);
     
@@ -211,6 +239,13 @@ void menuChangeEvent(MenuChangeEvent changed){
     lcdPrintIntSecondLine(configuration.pidOutputChannel);
  }
  
+ 
+ 
+ if (changed.to.isEqual(mPidATuneEnable)){
+   lcdPrintBooleanSecondLine(tuning);
+ }
+ 
+ 
  // Custom Control
  
  if (changed.to.isEqual(mCustomControlInputSensor)){
@@ -258,6 +293,12 @@ void menuUseEvent(MenuUseEvent used) {
  
  if (used.item.isEqual(mPidKd)) {
     configuration.pidKd=editFloat( configuration.pidKd, 0, 10, .01, 3, lcdPrintFloatSecondLine);
+ }
+  
+  
+ //
+ if (used.item.isEqual(mPidATuneEnable)) {
+    tuning=editInt( 0, 0, 1, 1, 1, lcdPrintBooleanSecondLine);
  }
   
   
