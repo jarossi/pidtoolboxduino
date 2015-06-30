@@ -71,6 +71,7 @@ struct config_t {
   double pidAKp;
   double pidAKi;
   double pidAKd;
+  unsigned int pidSampleTime;
 
   double pidATuneInputNoise;
   double pidATuneOutputStep;
@@ -178,7 +179,7 @@ void lcdPrintFloatSecondLine(double value) {
   lcd.setCursor(0, 1);
   lcd.print(lcdBlankLine);
   lcd.setCursor(0, 1);
-  lcd.print(value);
+  lcd.print(value, 4);
 }
 
 void lcdPrintBooleanSecondLine(long value) {
@@ -245,6 +246,121 @@ long editInt(long var, long minValue, long maxValue, long increment, int digits,
 }
 
 
+long editInt2(long var, long minValue, long maxValue, long increment, int digits ) {
+  long result = var;
+
+  long calincrement = increment;
+  
+  int idx=1;
+
+  lcd.blink();
+
+  delay(10);
+
+  lcd.setCursor(0 , 2);
+  lcd.print(lcdBlankLine);
+  lcd.setCursor(0 , 2);
+  lcd.print("inc:");
+  lcd.print(calincrement);
+  lcd.setCursor(0 , 1);
+  lcd.print(lcdBlankLine);
+  lcd.setCursor(0 , 1);
+  lcd.print(result);
+
+  byte joystickread = joystick.readDigital();
+
+  while (joystickread != THUMBJOYSTICK_SEL) {
+
+    joystick.updateDigital();
+    joystickread = joystick.readDigital();
+    if (joystickread != THUMBJOYSTICK_NULL) {
+      switch (joystickread) {
+
+        case THUMBJOYSTICK_UP:
+          result += calincrement;
+          result = constrain(result, minValue, maxValue);
+          lcd.setCursor(0 , 2);
+          lcd.print(lcdBlankLine);
+          lcd.setCursor(0 , 2);
+          lcd.print("inc:");
+          lcd.print(calincrement);
+          lcd.setCursor(0 , 1);
+          lcd.print(lcdBlankLine);
+          lcd.setCursor(0 , 1);
+          lcd.print(result);
+          break;
+
+        case THUMBJOYSTICK_DOWN:
+          result -= calincrement;
+          result = constrain(result, minValue, maxValue);
+          lcd.setCursor(0 , 2);
+          lcd.print(lcdBlankLine);
+          lcd.setCursor(0 , 2);
+          lcd.print("inc:");
+          lcd.print(calincrement);
+          lcd.setCursor(0 , 1);
+          lcd.print(lcdBlankLine);
+          lcd.setCursor(0 , 1);
+          lcd.print(result);
+          break;
+
+        case THUMBJOYSTICK_RIGHT:
+          idx--;
+          idx=constrain(idx, 1, digits);
+          calincrement = increment;
+          for (int i=1; i<idx; i++){
+             calincrement *= 10;
+          }
+                
+          lcd.setCursor(0 , 2);
+          lcd.print(lcdBlankLine);
+          lcd.setCursor(0 , 2);
+          lcd.print("inc:");
+          lcd.print(calincrement);
+          lcd.setCursor(0 , 1);
+          lcd.print(lcdBlankLine);
+          lcd.setCursor(0 , 1);
+          lcd.print(result);
+          break;
+
+        case THUMBJOYSTICK_LEFT:
+        
+          idx++;
+          idx=constrain(idx, 1, digits);
+          calincrement = increment;
+          for (int i=1; i<idx; i++){
+             calincrement *= 10;
+          }
+          
+          //calincrement *= 10;
+          //calincrement = constrain(calincrement, increment, increment * pow(10, digits-1));
+          lcd.setCursor(0 , 2);
+          lcd.print(lcdBlankLine);
+          lcd.setCursor(0 , 2);
+          lcd.print("inc:");
+          lcd.print(calincrement);
+          lcd.setCursor(0 , 1);
+          lcd.print(lcdBlankLine);
+          lcd.setCursor(0 , 1);
+          lcd.print(result);
+          break;
+
+        case THUMBJOYSTICK_SEL:
+          break;
+      }
+    }
+
+  }
+
+  lcd.noBlink();
+  lcd.setCursor(0 , 2);
+  lcd.print(lcdBlankLine);
+
+  return result;
+}
+
+
+
 double editFloat(double var, double minValue, double maxValue, double increment, int digits, void (*fdisplay)(double) ) {
   double result = var;
   byte joystickreadD;
@@ -280,6 +396,108 @@ double editFloat(double var, double minValue, double maxValue, double increment,
   lcd.noBlink();
   return result;
 }
+
+
+double editFloat2(double var, double minValue, double maxValue, double increment, int digits ) {
+  double result = var;
+
+  double calincrement = increment;
+
+  lcd.blink();
+
+  delay(10);
+
+  lcd.setCursor(0 , 2);
+  lcd.print(lcdBlankLine);
+  lcd.setCursor(0 , 2);
+  lcd.print("inc:");
+  lcd.print(calincrement, 4);
+  lcd.setCursor(0 , 1);
+  lcd.print(lcdBlankLine);
+  lcd.setCursor(0 , 1);
+  lcd.print(result, 4);
+
+  byte joystickread = joystick.readDigital();
+
+  while (joystickread != THUMBJOYSTICK_SEL) {
+
+    joystick.updateDigital();
+    joystickread = joystick.readDigital();
+    if (joystickread != THUMBJOYSTICK_NULL) {
+      switch (joystickread) {
+
+        case THUMBJOYSTICK_UP:
+          result += calincrement;
+          result = constrain(result, minValue, maxValue);
+          lcd.setCursor(0 , 2);
+          lcd.print(lcdBlankLine);
+          lcd.setCursor(0 , 2);
+          lcd.print("inc:");
+          lcd.print(calincrement, 4);
+          lcd.setCursor(0 , 1);
+          lcd.print(lcdBlankLine);
+          lcd.setCursor(0 , 1);
+          lcd.print(result, 4);
+          break;
+
+        case THUMBJOYSTICK_DOWN:
+          result -= calincrement;
+          result = constrain(result, minValue, maxValue);
+          lcd.setCursor(0 , 2);
+          lcd.print(lcdBlankLine);
+          lcd.setCursor(0 , 2);
+          lcd.print("inc:");
+          lcd.print(calincrement, 4);
+          lcd.setCursor(0 , 1);
+          lcd.print(lcdBlankLine);
+          lcd.setCursor(0 , 1);
+          lcd.print(result, 4);
+          break;
+
+        case THUMBJOYSTICK_RIGHT:
+          calincrement /= 10;
+          calincrement = constrain(calincrement, increment, increment * pow(10, digits-1));
+          lcd.setCursor(0 , 2);
+          lcd.print(lcdBlankLine);
+          lcd.setCursor(0 , 2);
+          lcd.print("inc:");
+          lcd.print(calincrement, 4);
+          lcd.setCursor(0 , 1);
+          lcd.print(lcdBlankLine);
+          lcd.setCursor(0 , 1);
+          lcd.print(result, 4);
+          break;
+
+        case THUMBJOYSTICK_LEFT:
+          calincrement *= 10;
+          calincrement = constrain(calincrement, increment, increment * pow(10, digits-1));
+          lcd.setCursor(0 , 2);
+          lcd.print(lcdBlankLine);
+          lcd.setCursor(0 , 2);
+          lcd.print("inc:");
+          lcd.print(calincrement, 4);
+          lcd.setCursor(0 , 1);
+          lcd.print(lcdBlankLine);
+          lcd.setCursor(0 , 1);
+          lcd.print(result, 4);
+          break;
+
+        case THUMBJOYSTICK_SEL:
+          break;
+      }
+    }
+
+  }
+
+  lcd.noBlink();
+  lcd.setCursor(0 , 2);
+  lcd.print(lcdBlankLine);
+
+  return result;
+}
+
+
+
 
 void lcdPrintTemp(float temp) {
   lcd.print(temp);
@@ -444,8 +662,6 @@ void driveLed(byte pin, byte channel, byte value) {
 
 void doOftenUpdate() {
 
-  Serial.print("do O S:");
-  Serial.print(millis());
   // debug
   if ( digitalRead(pidSwitchPin) == LOW && !(isnan(pidInput))  && !( (configuration.pidOutputChannel == configuration.customControlOutputChannel) && (digitalRead(customControlSwitchPin) == LOW) ) ) {
     if (tuning) {
@@ -492,19 +708,22 @@ void doOftenUpdate() {
   } else {
     pid.Compute();
   }
-  Serial.print(" ");
-  Serial.println(millis());
-
+  
 
 }
 
 
 void lcdPrintDash() {
+  Serial.print("LCD PRINT DASH");
+  Serial.println(millis());
   if (menu.getCurrent().isEqual(mHomeScreen)) {
     //lcd.clear();
     lcd.setCursor(0, 0);
+    doOftenUpdate();
     lcd.print("PID      Settings:");
+    doOftenUpdate();
     lcd.print(configuration_general.currentSettings);
+    doOftenUpdate();
     if ( configuration_general.currentSettings < 10) lcd.print(" ");
 
     doOftenUpdate();
@@ -512,32 +731,50 @@ void lcdPrintDash() {
     //pid
 
     lcd.setCursor(0, 1);
+    doOftenUpdate();
     lcd.print("PS :");
+    doOftenUpdate();
     lcdPrintTemp(pidSetPoint);
+    doOftenUpdate();
     lcd.setCursor(13, 1);
+    doOftenUpdate();
     lcd.print("MO:");
 
     doOftenUpdate();
 
     lcd.setCursor(0, 2);
+    doOftenUpdate();
     lcd.print("PI :");
+    doOftenUpdate();
     lcdPrintTemp(pidInput);
+    doOftenUpdate();
     lcd.setCursor(13, 2);
+    doOftenUpdate();
     lcd.print("PO :");
+    doOftenUpdate();
     lcd.print((byte)pidOutput);
+    doOftenUpdate();
     if ((byte)pidOutput < 100) lcd.print(" ");
+    doOftenUpdate();
     if ((byte)pidOutput < 10) lcd.print(" ");
 
     doOftenUpdate();
 
     // Custom Control
     lcd.setCursor(0, 3);
+    doOftenUpdate();
     lcd.print("CCI:");
+    doOftenUpdate();
     lcdPrintTemp(customControlInput);
+    doOftenUpdate();
     lcd.setCursor(13, 3);
+    doOftenUpdate();
     lcd.print("CCP:");
+    doOftenUpdate();
     lcd.print(customControlPot);
+    doOftenUpdate();
     if (customControlPot < 100) lcd.print(" ");
+    doOftenUpdate();
     if (customControlPot < 10) lcd.print(" ");
   }
 
@@ -545,18 +782,23 @@ void lcdPrintDash() {
 
 
 void updateSensorBuffer() {
-  Serial.print("updateSensor");
-  Serial.println(millis());
   int deviceCount = sensors.getDeviceCount();
+  doOftenUpdate();
   for (uint8_t i = 0; i < deviceCount; i++) {
+    doOftenUpdate();
     sensors.getAddress(sensorBuffer[i].address, i);
+    doOftenUpdate();
     sensorBuffer[i].temp = sensors.getTempCByIndex(i);
     doOftenUpdate();
 
   }
+  doOftenUpdate();
   sensors.requestTemperatures();
+  doOftenUpdate();
   for (uint8_t i = 0; i < deviceCount; i++) {
+    doOftenUpdate();
     if ( addressAreEqual(sensorBuffer[i].address, configuration.customControlInputSensor) ) customControlInput = sensorBuffer[i].temp;
+    doOftenUpdate();
     if ( addressAreEqual(sensorBuffer[i].address, configuration.pidInputSensor) ) pidInput = sensorBuffer[i].temp;
   }
 }
@@ -617,6 +859,7 @@ void setup() {
   configuration.pidAKp=1;
   configuration.pidAKi=1;
   configuration.pidAKd=1;
+  configuration.pidSampleTime=1000;
 
 
   configuration.pidATuneInputNoise=1;
@@ -638,8 +881,8 @@ void setup() {
   for (uint8_t i=0; i<maxCurrentSettings; i++) {
     eeprom_write_block((const void*)&configuration, (void*)(  (i+1) * sizeof(configuration)  ), sizeof(configuration));
   }
+  
   */
-
   
   eeprom_read_block((void*)&configuration, (void*)( configuration_general.currentSettings * sizeof(configuration)  ), sizeof(configuration));
 
@@ -679,6 +922,7 @@ void setup() {
   //pidkp, etc.
   pid.SetMode(MANUAL);
   pid.SetTunings(configuration.pidKp, configuration.pidKi, configuration.pidKd);
+  pid.SetSampleTime(configuration.pidSampleTime);
 
 
   pidATune.SetNoiseBand(configuration.pidATuneInputNoise);
@@ -708,17 +952,13 @@ void setup() {
   menu.moveDown();
   lcdPrintDash();
 
-  Serial.begin(9600);
-
-  if (configuration.customControlInputSensor == configuration.pidInputSensor) {
-    Serial.println("NO");
-  }
+  Serial.begin(115200);
 
   // We init the timers
   //Timers.every(10, doOftenUpdate);
   Timers.every(500, printSerialData);
-  Timers.every(750, updateSensorBuffer);
   Timers.every(300, lcdPrintDash);
+  Timers.every(750, updateSensorBuffer);
 
 
 
@@ -726,7 +966,6 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-
   joystick.updateDigital();
   byte joystickread = joystick.readDigital();
   if (joystickread != THUMBJOYSTICK_NULL) {
@@ -738,7 +977,6 @@ void loop() {
       case THUMBJOYSTICK_SEL: menu.use(); break;
     }
   }
-
   doUpdate();
 
 }

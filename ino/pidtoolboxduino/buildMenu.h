@@ -21,6 +21,7 @@ MenuBackend menu = MenuBackend(menuUseEvent,menuChangeEvent);
       MenuItem mPidAKp = MenuItem(menu, "PID Agressive Kp", 3);
       MenuItem mPidAKi = MenuItem(menu, "PID Agressive Ki", 3);
       MenuItem mPidAKd = MenuItem(menu, "PID Agressive Kd", 3);
+      MenuItem mPidSampleTime = MenuItem(menu, "PID Sample Time", 3);
       
     MenuItem mPidAutoTuneSettings = MenuItem(menu, "PID Auto Tuner", 2);
       MenuItem mPidATuneInputNoise = MenuItem(menu, "PID AT In Noise Band", 3);
@@ -45,9 +46,9 @@ MenuBackend menu = MenuBackend(menuUseEvent,menuChangeEvent);
       MenuItem mRelayPeriod = MenuItem(menu, "Relay Period", 3);
             
     MenuItem mGeneralSettings =  MenuItem(menu, "General Settings", 2);
-      MenuItem mFanSpeed =  MenuItem(menu, "Fan Speed", 3);
       MenuItem mSaveCurrentSettings = MenuItem(menu, "Save Settings", 3);
       MenuItem mCurrentSettings = MenuItem(menu, "Current Settings", 3);
+      MenuItem mFanSpeed =  MenuItem(menu, "Fan Speed", 3);
 
 
 //this function builds the menu and connects the correct items together
@@ -93,6 +94,9 @@ void menuSetup()
        
        mPidAKd.addBefore(mPidAKi);
        mPidAKd.addLeft(mPidSettings);
+           
+       mPidSampleTime.addBefore(mPidAKi);    
+       mPidSampleTime.addLeft(mPidSettings);
            
        mPidSetPoint.addLeft(mPidSettings);
     
@@ -152,15 +156,15 @@ void menuSetup()
         
     mGeneralSettings.addBefore(mRelaySettings);
     mGeneralSettings.addLeft(mHomeScreen);
-    mGeneralSettings.addRight(mFanSpeed);
+    mGeneralSettings.addRight(mSaveCurrentSettings);
     
-      mSaveCurrentSettings.addBefore(mFanSpeed);
-      mSaveCurrentSettings.addLeft(mGeneralSettings);
-      
       mCurrentSettings.addBefore(mSaveCurrentSettings);
       mCurrentSettings.addLeft(mGeneralSettings);
       
+      mFanSpeed.addBefore(mCurrentSettings);
       mFanSpeed.addLeft(mGeneralSettings);
+      
+      mSaveCurrentSettings.addLeft(mGeneralSettings);
 
     mPidSettings.addLeft(mHomeScreen);
     
@@ -244,7 +248,9 @@ void menuChangeEvent(MenuChangeEvent changed){
  if (changed.to.isEqual(mPidATuneEnable)){
    lcdPrintBooleanSecondLine(tuning);
  }
- 
+  if (changed.to.isEqual(mPidATuneControlType)){
+   lcdPrintIntSecondLine(configuration.pidATuneControlType);
+  }
  
  // Custom Control
  
@@ -271,7 +277,7 @@ void menuChangeEvent(MenuChangeEvent changed){
 void menuUseEvent(MenuUseEvent used) {
   // PID
   if (used.item.isEqual(mPidSetPoint)) {
-    configuration.pidSetPoint=editFloat( configuration.pidSetPoint, -50, 700, 0.1, 4, lcdPrintFloatSecondLine);
+    configuration.pidSetPoint=editFloat2( configuration.pidSetPoint, -50, 700, 0.0001, 7);
     pidSetPoint=configuration.pidSetPoint;
   }  
   if (used.item.isEqual(mPidInputSensor)) {
@@ -283,16 +289,16 @@ void menuUseEvent(MenuUseEvent used) {
  }
   
  if (used.item.isEqual(mPidKp)) {
-    configuration.pidKp=editFloat( configuration.pidKp, 0, 2000, 1, 3, lcdPrintFloatSecondLine);
+    configuration.pidKp=editFloat2( configuration.pidKp, 0, 9999, .0001, 7);
  }  
   
  
  if (used.item.isEqual(mPidKi)) {
-    configuration.pidKi=editFloat( configuration.pidKi, 0, 10, 0.01, 3, lcdPrintFloatSecondLine);
+    configuration.pidKi=editFloat2( configuration.pidKi, 0, 9999, 0.0001, 7);
  }
  
  if (used.item.isEqual(mPidKd)) {
-    configuration.pidKd=editFloat( configuration.pidKd, 0, 10, .01, 3, lcdPrintFloatSecondLine);
+    configuration.pidKd=editFloat2( configuration.pidKd, 0, 9999, .0001, 7);
  }
   
   
@@ -301,6 +307,12 @@ void menuUseEvent(MenuUseEvent used) {
     tuning=editInt( 0, 0, 1, 1, 1, lcdPrintBooleanSecondLine);
  }
   
+  
+ if (used.item.isEqual(mPidATuneControlType)){
+   configuration.pidATuneControlType=editInt( configuration.pidATuneControlType, 0, 1, 1, 1, lcdPrintIntSecondLine);
+   pidATune.SetControlType(configuration.pidATuneControlType);
+
+  } 
   
   // Custom Control Channel
   if (used.item.isEqual(mCustomControlInputSensor)) {
@@ -313,7 +325,7 @@ void menuUseEvent(MenuUseEvent used) {
   
   // General Settings
   if (used.item.isEqual(mFanSpeed)) {
-    configuration_general.fanSpeed=editInt( configuration_general.fanSpeed, 0, 255, 1, 3, lcdPrintIntSecondLine);
+    configuration_general.fanSpeed=editInt2( configuration_general.fanSpeed, 0, 255, 1, 3);
     analogWrite(fanPin, configuration_general.fanSpeed);
     eeprom_write_block((const void*)&configuration_general, (void*)0, sizeof(configuration));
   }
