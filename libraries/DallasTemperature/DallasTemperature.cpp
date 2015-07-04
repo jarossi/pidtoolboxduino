@@ -164,9 +164,9 @@ void DallasTemperature::readScratchPad(uint8_t* deviceAddress, uint8_t* scratchP
   // SCTRACHPAD_CRC
   scratchPad[SCRATCHPAD_CRC] = _wire->read();
 
-  for (uint8_t i=0; i<8; i++) {
+  //for (uint8_t i=0; i<8; i++) {
     //Serial.print("\n 0x"); Serial.print(scratchPad[i], HEX);
-  }
+  //}
   _wire->reset();
 }
 
@@ -181,8 +181,10 @@ void DallasTemperature::writeScratchPad(uint8_t* deviceAddress, const uint8_t* s
   // DS18S20 does not use the configuration register
   if (deviceAddress[0] != DS18S20MODEL) _wire->write(scratchPad[CONFIGURATION]); // configuration
   _wire->reset();
+  _wire->select(deviceAddress);
   // save the newly written values to eeprom
   _wire->write(COPYSCRATCH, parasite);
+  delay(20);  // <--- added 20ms delay to allow 10ms long EEPROM write operation (as specified by datasheet) 
   if (parasite) delay(10); // 10ms delay
   _wire->reset();
 }
@@ -369,8 +371,8 @@ void DallasTemperature::blockTillConversionComplete(uint8_t* bitResolution, uint
 	  	// Continue to check if the IC has responded with a temperature
 	  	// NB: Could cause issues with multiple devices (one device may respond faster)
 	  	unsigned long start = millis();
-		while(!isConversionAvailable(0) && ((millis() - start) < 750));	
-	}
+		while(!isConversionAvailable(deviceAddress) && ((millis() - start) < 750));	
+	} else {
 	
   	// Wait a fix number of cycles till conversion is complete (based on IC datasheet)
 	  switch (*bitResolution)
@@ -390,7 +392,43 @@ void DallasTemperature::blockTillConversionComplete(uint8_t* bitResolution, uint
 	      break;
 	  }
 
+	}
+
 }
+
+
+/*
+// returns number of milliseconds to wait till conversion is complete (based on IC datasheet)
+int16_t DallasTemperature::millisToWaitForConversion(uint8_t bitResolution)
+{
+    switch (bitResolution)
+    {
+    case 9:
+        return 94;
+    case 10:
+        return 188;
+    case 11:
+        return 375;
+    default:
+        return 750;
+    }
+}
+
+// Continue to check if the IC has responded with a temperature
+void DallasTemperature::blockTillConversionComplete(uint8_t bitResolution, const uint8_t* deviceAddress)
+{
+    int delms = millisToWaitForConversion(bitResolution);
+    if (deviceAddress != NULL && checkForConversion && !parasite)
+    {
+        unsigned long timend = millis() + delms;
+        while(!isConversionAvailable(deviceAddress) && (millis() < timend));
+    }
+    else
+    {
+        delay(delms);
+    }
+}
+*/
 
 // sends command for one device to perform a temp conversion by index
 bool DallasTemperature::requestTemperaturesByIndex(uint8_t deviceIndex)

@@ -25,8 +25,8 @@ class MenuItem; //forward declaration of the menu item
 
 struct MenuChangeEvent
 {
-  const MenuItem &from;
-  const MenuItem &to;
+  MenuItem &from;
+  MenuItem &to;
 };
 
 struct MenuUseEvent
