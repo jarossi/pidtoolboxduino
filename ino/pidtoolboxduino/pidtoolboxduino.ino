@@ -143,6 +143,33 @@ PID_ATune pidATune(&pidInput, &pidOutput);
 
 void printSerialData() {
   Serial.print(millis());
+  Serial.print(",pidInput:");
+  Serial.print(pidInput, 4);
+  Serial.print(",pidOutput:");
+  Serial.print((int)pidOutput);
+  Serial.print(",pidKp:");
+  Serial.print(pid.GetKp(), 4);
+  Serial.print(",pidKi:");
+  Serial.print(pid.GetKi(), 4);
+  Serial.print(",pidKd:");
+  Serial.print(pid.GetKd(), 4);
+  Serial.print(",pidMode:");
+  if (tuning) {
+    Serial.print("A Tune");
+  } else {
+    if (pid.GetMode() == MANUAL) {
+      Serial.print("Manual");
+    } else {
+      double gap = abs(pidSetPoint - pidInput); //distance away from setpoint
+      if ( configuration.pidAMode && gap > configuration.pidADelta) {
+        Serial.print("Aggrsiv");
+      } else  {
+        Serial.print("Auto");
+      }
+    }
+  }
+  Serial.print(",customControlInput:");
+  Serial.print(customControlInput, 4);
   Serial.print(",customControlPot:");
   Serial.println(customControlPot);
 
@@ -194,7 +221,7 @@ void lcdPrintBooleanSecondLine(long value) {
 
 }
 
-void lcdPrintPidDirectionSecondLine(int value) {
+void lcdPrintPidDirectionSecondLine(long value) {
   lcd.setCursor(0, 1);
   lcd.print(lcdBlankLine);
   lcd.setCursor(0, 1);
@@ -202,6 +229,19 @@ void lcdPrintPidDirectionSecondLine(int value) {
     lcd.print("direct");
   } else {
     lcd.print("reverse");
+  }
+
+}
+
+
+void lcdPrintPidATControlType(long value) {
+  lcd.setCursor(0, 1);
+  lcd.print(lcdBlankLine);
+  lcd.setCursor(0, 1);
+  if (value == 0 ) {
+    lcd.print("PI");
+  } else {
+    lcd.print("PID");
   }
 
 }
@@ -250,8 +290,8 @@ long editInt2(long var, long minValue, long maxValue, long increment, int digits
   long result = var;
 
   long calincrement = increment;
-  
-  int idx=1;
+
+  int idx = 1;
 
   lcd.blink();
 
@@ -306,12 +346,12 @@ long editInt2(long var, long minValue, long maxValue, long increment, int digits
 
         case THUMBJOYSTICK_RIGHT:
           idx--;
-          idx=constrain(idx, 1, digits);
+          idx = constrain(idx, 1, digits);
           calincrement = increment;
-          for (int i=1; i<idx; i++){
-             calincrement *= 10;
+          for (int i = 1; i < idx; i++) {
+            calincrement *= 10;
           }
-                
+
           lcd.setCursor(0 , 2);
           lcd.print(lcdBlankLine);
           lcd.setCursor(0 , 2);
@@ -324,14 +364,14 @@ long editInt2(long var, long minValue, long maxValue, long increment, int digits
           break;
 
         case THUMBJOYSTICK_LEFT:
-        
+
           idx++;
-          idx=constrain(idx, 1, digits);
+          idx = constrain(idx, 1, digits);
           calincrement = increment;
-          for (int i=1; i<idx; i++){
-             calincrement *= 10;
+          for (int i = 1; i < idx; i++) {
+            calincrement *= 10;
           }
-          
+
           //calincrement *= 10;
           //calincrement = constrain(calincrement, increment, increment * pow(10, digits-1));
           lcd.setCursor(0 , 2);
@@ -348,8 +388,9 @@ long editInt2(long var, long minValue, long maxValue, long increment, int digits
         case THUMBJOYSTICK_SEL:
           break;
       }
-    }
 
+    }
+    doUpdate();
   }
 
   lcd.noBlink();
@@ -360,7 +401,7 @@ long editInt2(long var, long minValue, long maxValue, long increment, int digits
 }
 
 
-
+/*
 double editFloat(double var, double minValue, double maxValue, double increment, int digits, void (*fdisplay)(double) ) {
   double result = var;
   byte joystickreadD;
@@ -397,11 +438,16 @@ double editFloat(double var, double minValue, double maxValue, double increment,
   return result;
 }
 
+*/
+
 
 double editFloat2(double var, double minValue, double maxValue, double increment, int digits ) {
   double result = var;
 
   double calincrement = increment;
+
+  int idx = 1;
+
 
   lcd.blink();
 
@@ -455,8 +501,15 @@ double editFloat2(double var, double minValue, double maxValue, double increment
           break;
 
         case THUMBJOYSTICK_RIGHT:
-          calincrement /= 10;
-          calincrement = constrain(calincrement, increment, increment * pow(10, digits-1));
+          //calincrement /= 10;
+          //calincrement = constrain(calincrement, increment, increment * pow(10, digits - 1));
+          idx--;
+          idx = constrain(idx, 1, digits);
+          calincrement = increment;
+          for (int i = 1; i < idx; i++) {
+            calincrement *= 10;
+          }
+          
           lcd.setCursor(0 , 2);
           lcd.print(lcdBlankLine);
           lcd.setCursor(0 , 2);
@@ -469,8 +522,14 @@ double editFloat2(double var, double minValue, double maxValue, double increment
           break;
 
         case THUMBJOYSTICK_LEFT:
-          calincrement *= 10;
-          calincrement = constrain(calincrement, increment, increment * pow(10, digits-1));
+           idx++;
+          idx = constrain(idx, 1, digits);
+          calincrement = increment;
+          for (int i = 1; i < idx; i++) {
+            calincrement *= 10;
+          }
+          //calincrement *= 10;
+          //calincrement = constrain(calincrement, increment, increment * pow(10, digits - 1));
           lcd.setCursor(0 , 2);
           lcd.print(lcdBlankLine);
           lcd.setCursor(0 , 2);
@@ -486,7 +545,7 @@ double editFloat2(double var, double minValue, double maxValue, double increment
           break;
       }
     }
-
+    doUpdate();
   }
 
   lcd.noBlink();
@@ -697,25 +756,23 @@ void doOftenUpdate() {
   if (tuning) {
     if (pidATune.Runtime() != 0) {
       tuning = false;
-      
-      configuration.pidKp=pidATune.GetKp();
-      configuration.pidKi=pidATune.GetKi();
-      configuration.pidKd=pidATune.GetKd();
-      configuration.pidAKp=pidATune.GetKp();
-      configuration.pidAKi=pidATune.GetKi();
-      configuration.pidAKd=pidATune.GetKd();
+
+      configuration.pidKp = pidATune.GetKp();
+      configuration.pidKi = pidATune.GetKi();
+      configuration.pidKd = pidATune.GetKd();
+      configuration.pidAKp = pidATune.GetKp();
+      configuration.pidAKi = pidATune.GetKi();
+      configuration.pidAKd = pidATune.GetKd();
     }
   } else {
     pid.Compute();
   }
-  
+
 
 }
 
 
 void lcdPrintDash() {
-  Serial.print("LCD PRINT DASH");
-  Serial.println(millis());
   if (menu.getCurrent().isEqual(mHomeScreen)) {
     //lcd.clear();
     lcd.setCursor(0, 0);
@@ -736,9 +793,24 @@ void lcdPrintDash() {
     doOftenUpdate();
     lcdPrintTemp(pidSetPoint);
     doOftenUpdate();
-    lcd.setCursor(13, 1);
+
     doOftenUpdate();
-    lcd.print("MO:");
+    lcd.setCursor(13, 1);
+    if (tuning) {
+      lcd.print("A Tune ");
+    } else {
+      if (pid.GetMode() == MANUAL) {
+        lcd.print("Manual ");
+      } else {
+        double gap = abs(pidSetPoint - pidInput); //distance away from setpoint
+        if ( configuration.pidAMode && gap > configuration.pidADelta) {
+          lcd.print("Aggrsiv");
+        } else  {
+          lcd.print("Auto   ");
+        }
+      }
+    }
+
 
     doOftenUpdate();
 
@@ -881,9 +953,9 @@ void setup() {
   for (uint8_t i=0; i<maxCurrentSettings; i++) {
     eeprom_write_block((const void*)&configuration, (void*)(  (i+1) * sizeof(configuration)  ), sizeof(configuration));
   }
-  
+
   */
-  
+
   eeprom_read_block((void*)&configuration, (void*)( configuration_general.currentSettings * sizeof(configuration)  ), sizeof(configuration));
 
   //Joystick
@@ -959,8 +1031,6 @@ void setup() {
   Timers.every(500, printSerialData);
   Timers.every(300, lcdPrintDash);
   Timers.every(750, updateSensorBuffer);
-
-
 
 }
 

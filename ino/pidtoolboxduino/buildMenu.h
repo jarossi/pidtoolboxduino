@@ -80,7 +80,10 @@ void menuSetup()
        mPidDirection.addBefore(mPidKd);
        mPidDirection.addLeft(mPidSettings);
        
-       mPidAMode.addBefore(mPidDirection);
+       mPidSampleTime.addBefore(mPidDirection);    
+       mPidSampleTime.addLeft(mPidSettings);
+       
+       mPidAMode.addBefore(mPidSampleTime);
        mPidAMode.addLeft(mPidSettings);
        
        mPidADelta.addBefore(mPidAMode);
@@ -94,9 +97,6 @@ void menuSetup()
        
        mPidAKd.addBefore(mPidAKi);
        mPidAKd.addLeft(mPidSettings);
-           
-       mPidSampleTime.addBefore(mPidAKi);    
-       mPidSampleTime.addLeft(mPidSettings);
            
        mPidSetPoint.addLeft(mPidSettings);
     
@@ -173,7 +173,8 @@ void menuSetup()
     
     mHomeScreen.addAfter(mHomeScreen);
     
-    
+
+
 }
 
 /*
@@ -196,6 +197,15 @@ void menuChangeEvent(MenuChangeEvent changed){
    lcdPrintFloatSecondLine(pidSetPoint);
  }
  
+ if (changed.to.isEqual(mPidInputSensor)){
+   lcd.setCursor(0, 1);
+   lcdPrintSensorAddress(configuration.pidInputSensor);
+ }
+ 
+ if (changed.to.isEqual(mPidOutputChannel)) {
+    lcdPrintIntSecondLine(configuration.pidOutputChannel);
+ }
+ 
  if (changed.to.isEqual(mPidKp)){
    lcdPrintFloatSecondLine(configuration.pidKp);
  }
@@ -212,6 +222,10 @@ void menuChangeEvent(MenuChangeEvent changed){
    lcdPrintPidDirectionSecondLine(configuration.pidDirection);
  }
  
+ if (changed.to.isEqual(mPidSampleTime)) {
+    lcdPrintIntSecondLine(configuration.pidSampleTime);
+ }
+ 
  if (changed.to.isEqual(mPidAMode)){
    lcdPrintBooleanSecondLine(configuration.pidAMode);
  }
@@ -219,7 +233,6 @@ void menuChangeEvent(MenuChangeEvent changed){
  if (changed.to.isEqual(mPidADelta)){
    lcdPrintFloatSecondLine(configuration.pidADelta);
  }
- 
  
  if (changed.to.isEqual(mPidAKp)){
    lcdPrintFloatSecondLine(configuration.pidAKp);
@@ -233,27 +246,28 @@ void menuChangeEvent(MenuChangeEvent changed){
    lcdPrintFloatSecondLine(configuration.pidAKd);
  }
  
+
+
  
- if (changed.to.isEqual(mPidInputSensor)){
-   lcd.setCursor(0, 1);
-   lcdPrintSensorAddress(configuration.pidInputSensor);
- }
- 
-  if ( changed.to.isEqual(mPidOutputChannel)) {
-    lcdPrintIntSecondLine(configuration.pidOutputChannel);
- }
- 
- 
- 
- if (changed.to.isEqual(mPidATuneEnable)){
-   lcdPrintBooleanSecondLine(tuning);
- }
+ // PID Auto Tune
+  if (changed.to.isEqual(mPidATuneInputNoise)){
+    lcdPrintFloatSecondLine(configuration.pidATuneInputNoise);
+  }
+  if (changed.to.isEqual(mPidATuneOutputStep)){
+    lcdPrintFloatSecondLine(configuration.pidATuneOutputStep);
+  }   
+  if (changed.to.isEqual(mPidATuneLookBack)){
+    lcdPrintIntSecondLine(configuration.pidATuneLookBack);
+  }   
   if (changed.to.isEqual(mPidATuneControlType)){
-   lcdPrintIntSecondLine(configuration.pidATuneControlType);
+    lcdPrintPidATControlType(configuration.pidATuneControlType);
+  }     
+  if (changed.to.isEqual(mPidATuneEnable)){
+    lcdPrintBooleanSecondLine(tuning);
   }
  
- // Custom Control
  
+ // Custom Control
  if (changed.to.isEqual(mCustomControlInputSensor)){
    lcd.setCursor(0, 1);
    lcdPrintSensorAddress(configuration.customControlInputSensor);
@@ -261,6 +275,28 @@ void menuChangeEvent(MenuChangeEvent changed){
  
  if ( changed.to.isEqual(mCustomControlOutputChannel)) {
     lcdPrintIntSecondLine(configuration.customControlOutputChannel);
+ }
+ 
+ // SSR
+ if (changed.to.isEqual(mSSRMinOn)){
+   lcdPrintIntSecondLine(configuration.SSRMinOn);
+ }
+  if (changed.to.isEqual(mSSRMaxOff)){
+   lcdPrintIntSecondLine(configuration.SSRMaxOff);
+ }
+  if (changed.to.isEqual(mSSRPeriod)){
+   lcdPrintIntSecondLine(configuration.SSRPeriod);
+ }
+ 
+ // Relay
+ if (changed.to.isEqual(mRelayMinOn)){
+   lcdPrintIntSecondLine(configuration.relayMinOn);
+ }
+  if (changed.to.isEqual(mRelayMaxOff)){
+   lcdPrintIntSecondLine(configuration.relayMaxOff);
+ }
+  if (changed.to.isEqual(mRelayPeriod)){
+   lcdPrintIntSecondLine(configuration.relayPeriod);
  }
  
  // General Settings
@@ -277,7 +313,7 @@ void menuChangeEvent(MenuChangeEvent changed){
 void menuUseEvent(MenuUseEvent used) {
   // PID
   if (used.item.isEqual(mPidSetPoint)) {
-    configuration.pidSetPoint=editFloat2( configuration.pidSetPoint, -50, 700, 0.0001, 7);
+    configuration.pidSetPoint=editFloat2( configuration.pidSetPoint, -50, 700, 0.01, 5);
     pidSetPoint=configuration.pidSetPoint;
   }  
   if (used.item.isEqual(mPidInputSensor)) {
@@ -289,30 +325,76 @@ void menuUseEvent(MenuUseEvent used) {
  }
   
  if (used.item.isEqual(mPidKp)) {
-    configuration.pidKp=editFloat2( configuration.pidKp, 0, 9999, .0001, 7);
+    configuration.pidKp=editFloat2( configuration.pidKp, 0, 9999, .0001, 8);
  }  
   
  
  if (used.item.isEqual(mPidKi)) {
-    configuration.pidKi=editFloat2( configuration.pidKi, 0, 9999, 0.0001, 7);
+    configuration.pidKi=editFloat2( configuration.pidKi, 0, 9999, 0.0001, 8);
  }
  
  if (used.item.isEqual(mPidKd)) {
-    configuration.pidKd=editFloat2( configuration.pidKd, 0, 9999, .0001, 7);
+    configuration.pidKd=editFloat2( configuration.pidKd, 0, 9999, .0001, 8);
+ }
+ 
+ if (used.item.isEqual(mPidDirection)){
+   configuration.pidDirection=editInt(configuration.pidDirection, 0, 1, 1, 1, lcdPrintPidDirectionSecondLine);
+   pid.SetControllerDirection(configuration.pidDirection);
+ }
+ 
+ if (used.item.isEqual(mPidSampleTime)){
+   configuration.pidSampleTime=editInt2(configuration.pidSampleTime, 100, 300000, 100, 4);
+   pid.SetSampleTime(configuration.pidSampleTime);
  }
   
+ if (used.item.isEqual(mPidAMode)) {
+    configuration.pidAMode=editInt( configuration.pidAMode, 0, 1, 1, 1, lcdPrintBooleanSecondLine);
+ }  
+ 
+ if (used.item.isEqual(mPidADelta)) {
+    configuration.pidADelta=editFloat2(configuration.pidADelta, 0, 200, 0.01, 5);
+ }  
+
+ if (used.item.isEqual(mPidAKp)) {
+    configuration.pidAKp=editFloat2( configuration.pidAKp, 0, 9999, .0001, 8);
+ }  
+ 
+ if (used.item.isEqual(mPidAKi)) {
+    configuration.pidAKi=editFloat2( configuration.pidAKi, 0, 9999, 0.0001, 8);
+ }
+ 
+ if (used.item.isEqual(mPidAKd)) {
+    configuration.pidAKd=editFloat2( configuration.pidAKd, 0, 9999, .0001, 8);
+ }
+   
   
- //
+
+ // PID AT 
+ 
+ if (used.item.isEqual(mPidATuneInputNoise)) {
+    configuration.pidATuneInputNoise=editFloat2(configuration.pidATuneInputNoise, 0, 200, 0.01, 5);
+    pidATune.SetNoiseBand(configuration.pidATuneInputNoise);
+ }  
+
+ if (used.item.isEqual(mPidATuneOutputStep)){
+    configuration.pidATuneOutputStep=editInt2(configuration.pidATuneOutputStep, 0, 255, 1, 3);
+    pidATune.SetOutputStep(configuration.pidATuneOutputStep);
+ }
+    
+ if (used.item.isEqual(mPidATuneLookBack)){  
+  configuration.pidATuneLookBack=editInt2(configuration.pidATuneLookBack, 1, 200, 1, 3);
+  pidATune.SetLookbackSec(configuration.pidATuneLookBack);
+ }
+
+ if (used.item.isEqual(mPidATuneControlType)){
+   configuration.pidATuneControlType=editInt( configuration.pidATuneControlType, 0, 1, 1, 1, lcdPrintPidATControlType);
+   pidATune.SetControlType(configuration.pidATuneControlType);
+
+ } 
+ 
  if (used.item.isEqual(mPidATuneEnable)) {
     tuning=editInt( 0, 0, 1, 1, 1, lcdPrintBooleanSecondLine);
  }
-  
-  
- if (used.item.isEqual(mPidATuneControlType)){
-   configuration.pidATuneControlType=editInt( configuration.pidATuneControlType, 0, 1, 1, 1, lcdPrintIntSecondLine);
-   pidATune.SetControlType(configuration.pidATuneControlType);
-
-  } 
   
   // Custom Control Channel
   if (used.item.isEqual(mCustomControlInputSensor)) {
@@ -322,6 +404,33 @@ void menuUseEvent(MenuUseEvent used) {
  if (used.item.isEqual(mCustomControlOutputChannel)) {
     configuration.customControlOutputChannel=editInt( configuration.customControlOutputChannel, 1, 3, 1, 1, lcdPrintIntSecondLine);
  }
+ 
+ // SSR
+ if (used.item.isEqual(mSSRMinOn)){
+   configuration.SSRMinOn=editInt2(configuration.SSRMinOn, 20, 300000, 10, 5);
+   
+  }
+  if (used.item.isEqual(mSSRMaxOff)){
+   configuration.SSRMaxOff=editInt2(configuration.SSRMaxOff, 20, 300000, 10, 5);
+ }
+ if (used.item.isEqual(mSSRPeriod)){
+    configuration.SSRPeriod=editInt2(configuration.SSRPeriod, 1000, 300000, 10, 5);
+ }
+ 
+ 
+  // Relay
+ if (used.item.isEqual(mRelayMinOn)){
+   configuration.relayMinOn=editInt2(configuration.relayMinOn, 500, 300000, 100, 4);
+   
+  }
+  if (used.item.isEqual(mRelayMaxOff)){
+   configuration.relayMaxOff=editInt2(configuration.relayMaxOff, 500, 300000, 100, 4);
+ }
+ if (used.item.isEqual(mRelayPeriod)){
+    configuration.relayPeriod=editInt2(configuration.relayPeriod, 1000, 300000, 100, 4);
+ }
+ 
+ 
   
   // General Settings
   if (used.item.isEqual(mFanSpeed)) {
