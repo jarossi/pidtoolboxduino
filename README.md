@@ -5,15 +5,16 @@ General purpose pid, with several types outputs, autotuning, and Dallas One Wire
 Compiled with arduino 1.6.4
 
 /ino contains the arduino schetch
+
 /libraries contains any libraries
- LiquidCrystal: http://github.com/adafruit/LiquidCrystal
- MenuBackend: https://github.com/WiringProject/Wiring/tree/master/framework/libraries/MenuBackend
- OneWire: https://github.com/adafruit/MAX31850_OneWire/
- DallasTemperature: https://github.com/adafruit/MAX31850_DallasTemp/
- PID_AutoTune_v0: https://github.com/br3ttb/Arduino-PID-AutoTune-Library
- PID_v1: https://github.com/br3ttb/Arduino-PID-Library
- Timer: https://github.com/JChristensen/Timer
- Thumbjoystic: https://github.com/jarossi/ThumbJoystick
+	LiquidCrystal: http://github.com/adafruit/LiquidCrystal
+	MenuBackend: https://github.com/WiringProject/Wiring/tree/master/framework/libraries/MenuBackend
+	OneWire: https://github.com/adafruit/MAX31850_OneWire/
+	DallasTemperature: https://github.com/adafruit/MAX31850_DallasTemp/
+	PID_AutoTune_v0: https://github.com/br3ttb/Arduino-PID-AutoTune-Library
+	PID_v1: https://github.com/br3ttb/Arduino-PID-Library
+	Timer: https://github.com/JChristensen/Timer
+	Thumbjoystic: https://github.com/jarossi/ThumbJoystick
 
 
 Hardware:
