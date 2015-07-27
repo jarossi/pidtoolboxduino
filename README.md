@@ -38,9 +38,11 @@ LCD I2C backpack: http://www.adafruit.com/products/292
 Thumb joystick: http://www.adafruit.com/products/512
 
 Thermocouple Amplifier with 1-Wire Breakout Board - MAX31850K: http://www.adafruit.com/products/1727
+
 DS18B20
 
 AC Dimmer: https://www.tindie.com/products/thewp122/ac-60hz50hz-phase-controller-dimmer-board-arduino-compatible-2/
+
 SSR
 
 Relay: https://nicegear.co.nz/components/relay-spdt-sealed-20a/
