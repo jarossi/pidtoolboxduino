@@ -732,6 +732,9 @@ void doOftenUpdate() {
     driveLed(pidLedPin, configuration.pidOutputChannel, pidOutput);
   } else {
     pid.SetMode(MANUAL);
+    if ( (configuration.pidOutputChannel == configuration.customControlOutputChannel) && (digitalRead(customControlSwitchPin) == LOW) ){
+        pidOutput=customControlPot;
+    }
     tuning = false;
     pidATune.Cancel();
     driveOutput(configuration.pidOutputChannel, 0);
